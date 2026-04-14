@@ -101,7 +101,6 @@ class CPPGPID(PPO):
         self._logger.log('INFO: Start training')
 
         for phase in range(self._number_phases):
-            phase_time = time.time()
 
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
 
@@ -148,17 +147,14 @@ class CPPGPID(PPO):
                     current_epoch + 1
                 ) == self._cfgs.train_cfgs.epochs:
                     self._logger.torch_save()
-            print("finished policy phase")
 
             ep_ret = self._logger.get_stats('Metrics/EpRet')[0]
             ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
             ep_len = self._logger.get_stats('Metrics/EpLen')[0]
 
-            print("start aux phase")
             self._compute_old_policy_snapshot() #populate the aux buffer with pi_old(.|s_t) for all states in it
             for aux_phase in range(self._cfgs.algo_cfgs.E_aux):
                 self._aux_update()
-            print("finished aux phase")
 
         self._logger.close()
         self._env.close()
