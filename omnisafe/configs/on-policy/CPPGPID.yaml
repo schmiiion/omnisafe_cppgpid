@@ -46,6 +46,12 @@ defaults:
     steps_per_epoch: 16384
     # number of iterations to update the policy | THIS IS THE E_pi from PPG
     update_iters: 2
+    # KL bound that the beta_clone params aims to achieve during the aux update
+    aux_kl_target: 0.01
+    # init of the beta_clone learnanble param that scales the KL term in the aux objective.
+    init_beta_clone: 1.0
+    #lr of the beta_clone parameter
+    beta_lr: 0.01
     # batch size for each iteration
     batch_size: 64
     # target kl divergence
@@ -133,13 +139,13 @@ defaults:
   # lagrangian configurations
   lagrange_cfgs:
     # The Kp of PID controller
-    pid_kp: 0.01
+    pid_kp: 0.1
     # The Ki of PID controller
-    pid_ki: 0.00015
+    pid_ki: 0.01
     # The Kd of PID controller
-    pid_kd: 0.002
+    pid_kd: 0.01
     #The delay of PID controller
-    pid_d_delay: 15
+    pid_d_delay: 10
     # The exponential moving average alpha of the proportional term of the PID controller.
     pid_delta_p_ema_alpha: 0.95
     # The exponential moving average alpha of the derivative term of the PID controller.
@@ -153,4 +159,4 @@ defaults:
     # The max penalty coefficient
     penalty_max: 100.0
     # Initial value of lagrangian multiplier
-    lagrangian_multiplier_init: 0.0001
+    lagrangian_multiplier_init: 0.001

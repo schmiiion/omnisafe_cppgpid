@@ -17,20 +17,11 @@
 from __future__ import annotations
 
 import time
-
+import numpy as np
 import torch
 import torch.nn as nn
-from rich.progress import track
-from torch.nn.utils.clip_grad import clip_grad_norm_
+from jumpy.numpy import dtype
 from torch.utils.data import DataLoader, TensorDataset
-
-from omnisafe.adapter import OnPolicyAdapter
-from omnisafe.algorithms import registry
-from omnisafe.algorithms.base_algo import BaseAlgo
-from omnisafe.common.buffer import VectorOnPolicyBuffer
-from omnisafe.common.logger import Logger
-from omnisafe.models.actor_critic.constraint_actor_critic import ConstraintActorCritic
-from omnisafe.utils import distributed
 
 from omnisafe.algorithms import registry
 from omnisafe.algorithms.on_policy.base.ppo import PPO
@@ -54,6 +45,7 @@ class CPPGPID(PPO):
         The CPPOPID algorithm uses a PID-Lagrange multiplier to balance the cost and reward.
         """
         super()._init()
+        #TODO: some assertion like this should be enabled, otherwise the training ends weirdly
         # assert self._cfgs.train_cfgs.epochs % self._cfgs.algo_cfgs.N_pi == 0, \
         #     "Total epochs must be a multiple of N_pi!"
         self._number_phases = self._cfgs.train_cfgs.total_steps // (self._cfgs.algo_cfgs.N_pi * self._cfgs.algo_cfgs.steps_per_epoch)
@@ -69,6 +61,14 @@ class CPPGPID(PPO):
             device=self._device
         )
         self._lagrange: PIDLagrangian = PIDLagrangian(**self._cfgs.lagrange_cfgs)
+        self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
+        init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
+        self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
+        self._beta_optimizer = torch.optim.Adam(
+            [self._log_beta_clone],
+            lr=self._cfgs.algo_cfgs.beta_lr,
+            betas=(0.0, 0.999)  # Disabled momentum for tight locking
+        )
 
     def _init_log(self) -> None:
         """Log the CPPOPID specific information.
@@ -81,7 +81,7 @@ class CPPGPID(PPO):
         """
         super()._init_log()
         self._logger.register_key('Metrics/LagrangeMultiplier')
-
+        self._logger.register_key('Metrics/BetaClone')
 
     def learn(self) -> tuple[float, float, float]:
         """This is main function for algorithm update.
@@ -235,7 +235,17 @@ class CPPGPID(PPO):
             kl = torch.distributions.kl.kl_divergence(old_distribution, new_distribution).mean()
             #kl = distributed.dist_avg(kl)
 
-            L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + self._cfgs.algo_cfgs.beta_clone * kl
+            beta_loss = -torch.exp(self._log_beta_clone) * (kl.detach() - self._aux_kl_target)
+            self._beta_optimizer.zero_grad()
+            beta_loss.backward()
+            self._beta_optimizer.step()
+            with torch.no_grad():
+                self._log_beta_clone.clamp_(min=-9.2, max=4.6) # evaluates to 1e-4 and 100
+                current_beta_val = torch.exp(self._log_beta_clone).item()
+                print(current_beta_val)
+                self._logger.store({'Metrics/BetaClone': current_beta_val})
+
+            L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
             self._actor_critic.actor_optimizer.zero_grad()
             L_joint.backward()
             self._actor_critic.actor_optimizer.step()
