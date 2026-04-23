@@ -64,6 +64,10 @@ class PTRPOPID(TRPO):
             lr=self._cfgs.algo_cfgs.beta_lr,
             betas=(0.0, 0.999)  # Disabled momentum for tight locking
         )
+        self._aux_actor_optimizer = torch.optim.Adam(
+            self._actor_critic.actor.parameters(),
+            lr=self._cfgs.algo_cfgs.aux_lr,
+        )
 
     def _init_log(self) -> None:
         """Log the TRPOPID specific information.
@@ -76,10 +80,7 @@ class PTRPOPID(TRPO):
         """
         super()._init_log()
         self._logger.register_key('Metrics/LagrangeMultiplier')
-        self._aux_actor_optimizer = torch.optim.Adam(
-            self._actor_critic.actor.parameters(),
-            lr=self._cfgs.algo_cfgs.aux_lr,
-        )
+        self._logger.register_key('Metrics/BetaClone')
 
     def learn(self) -> tuple[float, float, float]:
         start_time = time.time()
