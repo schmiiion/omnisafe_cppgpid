@@ -21,7 +21,7 @@ defaults:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.
     device: cpu
     # number of threads for torch
-    torch_threads: 1
+    torch_threads: 16
     # number of vectorized environments
     vector_env_nums: 1
     # number of parallel agent, similar to a3c
@@ -40,9 +40,11 @@ defaults:
     number_aux_mb_per_Npi: 16
     # Scaling the cost signal during the auxiliary phase
     alpha_cost: 0.3
+    #lr for the actor optimizer used during the aux phase
+    aux_lr: 0.0003
     # number of steps to update the policy
     steps_per_epoch: 20000
-    # number of iterations to update the policy | THIS IS THE E_pi from PPG
+    # number of iterations to update the policy
     update_iters: 2
     # KL bound that the beta_clone params aims to achieve during the aux update
     aux_kl_target: 0.01
@@ -51,7 +53,7 @@ defaults:
     #lr of the beta_clone parameter
     beta_lr: 0.01
     # batch size for each iteration
-    batch_size: 64
+    batch_size: 128
     # target kl divergence
     target_kl: 0.02
     # entropy coefficient
@@ -63,7 +65,7 @@ defaults:
     # normalize observation
     obs_normalize: True
     # early stop when kl divergence is bigger than target kl
-    kl_early_stop: True
+    kl_early_stop: False
     # use max gradient norm
     use_max_grad_norm: True
     # max gradient norm
@@ -80,8 +82,6 @@ defaults:
     lam: 0.95
     # lambda for cost gae
     lam_c: 0.95
-    # clip ratio
-    clip: 0.2
     # advantage estimation method, options: gae, retrace
     adv_estimation_method: gae
     # standardize reward advantage
@@ -92,6 +92,16 @@ defaults:
     penalty_coef: 0.0
     # use cost
     use_cost: True
+    # Damping value for conjugate gradient
+    cg_damping: 0.1
+    # Number of conjugate gradient iterations
+    cg_iters: 15
+    # Subsampled observation
+    fvp_obs: None
+    # Tolerance of constraint violation
+    cost_limit: 25
+    # The sub-sampling rate of the observation
+    fvp_sample_freq: 1
   # logger configurations
   logger_cfgs:
     # use wandb for logging
@@ -113,7 +123,7 @@ defaults:
     # actor type, options: gaussian, gaussian_learning
     actor_type: gaussian_learning_ppg
     # linear learning rate decay
-    linear_lr_decay: False
+    linear_lr_decay: True
     # exploration noise anneal
     exploration_noise_anneal: False
     # std upper bound, and lower bound
@@ -126,7 +136,7 @@ defaults:
       activation: tanh
       # out_activation: tanh
       # learning rate
-      lr: 0.0003
+      lr: ~
     critic:
       # hidden layer sizes
       hidden_sizes: [256, 256]
@@ -134,27 +144,58 @@ defaults:
       activation: tanh
       # learning rate
       lr: 0.0003
-  # lagrangian configurations
-  lagrange_cfgs:
-    # The Kp of PID controller
-    pid_kp: 0.1
-    # The Ki of PID controller
-    pid_ki: 0.01
-    # The Kd of PID controller
-    pid_kd: 0.01
-    #The delay of PID controller
-    pid_d_delay: 10
-    # The exponential moving average alpha of the proportional term of the PID controller.
-    pid_delta_p_ema_alpha: 0.95
-    # The exponential moving average alpha of the derivative term of the PID controller.
-    pid_delta_d_ema_alpha: 0.95
-    # Whether to normalize the sum of the cost.
-    sum_norm: True
-    # Whether to normalize the derivate of the cost.
-    diff_norm: False
-    # Tolerance of constraint violation
-    cost_limit: 25.0
-    # The max penalty coefficient
-    penalty_max: 100.0
-    # Initial value of lagrangian multiplier
-    lagrangian_multiplier_init: 0.001
+
+SafeMetaDrive:
+  # training configurations
+  train_cfgs:
+    # total number of steps to train
+    total_steps: 500000
+  # logger configurations
+  logger_cfgs:
+    # save model frequency
+    save_model_freq: 15
+  # algorithm configurations
+  algo_cfgs:
+    # batch size for each iteration
+    batch_size: 512
+    # number of steps to update the policy
+    steps_per_epoch: 3000
+    # number of iterations to update the policy
+    update_iters: 10
+    # normalize reward
+    reward_normalize: False
+    # normalize cost
+    cost_normalize: True
+    # normalize observation
+    obs_normalize: False
+    # max gradient norm
+    max_grad_norm: 20.0
+    cost_limit: 1
+  # model configurations
+  model_cfgs:
+    # actor network configurations
+    actor:
+      # size of hidden layers
+      hidden_sizes: [256, 256]
+      # learning rate
+      lr: 0.00005
+    # critic network configurations
+    critic:
+      # size of hidden layers
+      hidden_sizes: [256, 256]
+      # learning rate
+      lr: 0.00005
+  # environment specific configurations
+  env_cfgs:
+  # safe meta drive configurations. More details refer to https://github.com/decisionforce/EGPO
+    meta_drive_config:
+      # max iterations of interactions
+      horizon: 1500
+      # whether to use random traffic
+      random_traffic: False
+      # the penalty when crash into other vehicles
+      crash_vehicle_penalty: 1.
+      # the penalty when crash into other objects
+      crash_object_penalty: 0.5
+      # the penalty when out of road
+      out_of_road_penalty: 1.

@@ -21,7 +21,7 @@ defaults:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.
     device: cpu
     # number of threads for torch
-    torch_threads: 1
+    torch_threads: 16
     # number of vectorized environments
     vector_env_nums: 1
     # number of parallel agent, similar to a3c
@@ -40,9 +40,11 @@ defaults:
     number_aux_mb_per_Npi: 16
     # Scaling the cost signal during the auxiliary phase
     alpha_cost: 0.3
+    #lr for the actor optimizer used during the aux phase
+    aux_lr: 0.0003
     # number of steps to update the policy
     steps_per_epoch: 20000
-    # number of iterations to update the policy | THIS IS THE E_pi from PPG
+    # number of iterations to update the policy
     update_iters: 2
     # KL bound that the beta_clone params aims to achieve during the aux update
     aux_kl_target: 0.01
@@ -51,7 +53,7 @@ defaults:
     #lr of the beta_clone parameter
     beta_lr: 0.01
     # batch size for each iteration
-    batch_size: 64
+    batch_size: 128
     # target kl divergence
     target_kl: 0.02
     # entropy coefficient
@@ -63,7 +65,7 @@ defaults:
     # normalize observation
     obs_normalize: True
     # early stop when kl divergence is bigger than target kl
-    kl_early_stop: True
+    kl_early_stop: False
     # use max gradient norm
     use_max_grad_norm: True
     # max gradient norm
@@ -92,6 +94,14 @@ defaults:
     penalty_coef: 0.0
     # use cost
     use_cost: True
+    # Damping value for conjugate gradient
+    cg_damping: 0.1
+    # Number of conjugate gradient iterations
+    cg_iters: 15
+    # Subsampled observation
+    fvp_obs: None
+    # The sub-sampling rate of the observation
+    fvp_sample_freq: 1
   # logger configurations
   logger_cfgs:
     # use wandb for logging
@@ -113,7 +123,7 @@ defaults:
     # actor type, options: gaussian, gaussian_learning
     actor_type: gaussian_learning_ppg
     # linear learning rate decay
-    linear_lr_decay: False
+    linear_lr_decay: True
     # exploration noise anneal
     exploration_noise_anneal: False
     # std upper bound, and lower bound
@@ -126,7 +136,7 @@ defaults:
       activation: tanh
       # out_activation: tanh
       # learning rate
-      lr: 0.0003
+      lr: ~
     critic:
       # hidden layer sizes
       hidden_sizes: [256, 256]
