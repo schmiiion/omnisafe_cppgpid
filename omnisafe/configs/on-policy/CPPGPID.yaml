@@ -15,7 +15,7 @@
 
 defaults:
   # seed for random number generator
-  seed: 0
+  seed: 1000
   # training configurations
   train_cfgs:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.
@@ -39,7 +39,7 @@ defaults:
     # number of minibatches per N_pi rollout in the auxiliary phase
     number_aux_mb_per_Npi: 16
     # Scaling the cost signal during the auxiliary phase
-    alpha_cost: 0.3
+    alpha_cost: 1.0
     # number of steps to update the policy
     steps_per_epoch: 20000
     # number of iterations to update the policy | THIS IS THE E_pi from PPG

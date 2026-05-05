@@ -101,6 +101,7 @@ class CPPGPID(PPO):
         self._logger.log('INFO: Start training')
 
         for phase in range(self._number_phases):
+            print(f"Phase {phase+1} of {self._number_phases+1}")
 
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
 
@@ -242,7 +243,6 @@ class CPPGPID(PPO):
             with torch.no_grad():
                 self._log_beta_clone.clamp_(min=-9.2, max=4.6) # evaluates to 1e-4 and 100
                 current_beta_val = torch.exp(self._log_beta_clone).item()
-                print(current_beta_val)
                 self._logger.store({'Metrics/BetaClone': current_beta_val})
 
             L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
