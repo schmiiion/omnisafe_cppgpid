@@ -14,7 +14,8 @@ data_list = []
 custom_colors = ["#FF0000", "#B22222", "#8B4513", "#5F9EA0", "#00CED1", "#00FFFF"]
 
 # 2. Collect data
-for seed_folder in root_dir.iterdir():
+it_over = root_dir.iterdir()
+for seed_folder in it_over:
     config_path = seed_folder / "config.json"
     csv_path = seed_folder / "progress.csv"
 
@@ -24,13 +25,29 @@ for seed_folder in root_dir.iterdir():
             config = json.load(f)
             if config.get("seed") == 1000:
                 continue
-            hp_value = config.get("algo_cfgs", {}).get(target_hyperparam, "unknown")
 
-        # Load CSV
+            algo_cfgs = config.get("algo_cfgs", {})
+            alpha_cost = algo_cfgs.get(target_hyperparam, "unknown")
+
+            # Check algo_cfgs, with a fallback to root config, defaulting to False
+            joint_aux_phase = algo_cfgs.get("joint_aux_phase", True)
+
+            # Catch cases where JSON saved the boolean as a string (e.g., "True" or "False")
+            if isinstance(joint_aux_phase, str):
+                joint_aux_phase = joint_aux_phase.lower() in ['true', '1', 't', 'yes']
+
+        # Determine the grouping label
+        if not joint_aux_phase:
+            group_label = "joint_aux_phase=False"
+        else:
+            # Force this to a string to prevent Seaborn from dropping mixed types
+            group_label = f"{target_hyperparam}={alpha_cost}"
+
+            # Load CSV
         df = pd.read_csv(csv_path)
 
         # Add metadata for Seaborn grouping
-        df[target_hyperparam] = hp_value
+        df["Grouping_Key"] = group_label
         df['Seed'] = seed_folder.name
 
         data_list.append(df)
@@ -42,19 +59,29 @@ master_df = pd.concat(data_list, ignore_index=True)
 plt.figure(figsize=(10, 8))
 sns.set_style("white")
 
+unique_groups = master_df["Grouping_Key"].unique()
+palette_dict = {}
+color_idx = 0
+
+for group in unique_groups:
+    if group == "joint_aux_phase=False":
+        palette_dict[group] = "green"
+    else:
+        palette_dict[group] = custom_colors[color_idx % len(custom_colors)]
+        color_idx += 1
+
 plot = sns.lineplot(
     data=master_df,
-    x="TotalEnvSteps",  # or "Step" depending on your CSV header
-    y="Metrics/EpRet",  # Use the absolute Reward column name
-    hue=target_hyperparam,
-    palette=custom_colors[:master_df[target_hyperparam].nunique()],
+    x="TotalEnvSteps",
+    y="Metrics/EpRet",
+    hue="Grouping_Key",
+    palette=palette_dict,
     estimator='median',
     errorbar=None
-    #errorbar=("pi", 95)  # Optional: shows 95% percentile spread like your reference
 )
 
-plt.title(f"Median grouped by {target_hyperparam} across n=4 seeds")
+plt.title("Median Returns Grouped by joint_aux_phase & alpha_cost")
 plt.xlabel("Steps")
 plt.ylabel("Episode Return")
-plt.legend(title=f"{target_hyperparam}")
+plt.legend(title="Groups")
 plt.show()

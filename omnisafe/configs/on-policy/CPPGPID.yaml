@@ -15,7 +15,7 @@
 
 defaults:
   # seed for random number generator
-  seed: 1000
+  seed: 1111
   # training configurations
   train_cfgs:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.
@@ -30,6 +30,8 @@ defaults:
     total_steps: 10000000
   # algorithm configurations
   algo_cfgs:
+    #is the distillation happening via a joint reward and cost obejctive?
+    joint_aux_phase: True
     # number of policy iterations
     N_pi: 16
     #number of value epochs
@@ -39,7 +41,7 @@ defaults:
     # number of minibatches per N_pi rollout in the auxiliary phase
     number_aux_mb_per_Npi: 16
     # Scaling the cost signal during the auxiliary phase
-    alpha_cost: 1.0
+    alpha_cost: 0.0
     # number of steps to update the policy
     steps_per_epoch: 20000
     # number of iterations to update the policy | THIS IS THE E_pi from PPG
