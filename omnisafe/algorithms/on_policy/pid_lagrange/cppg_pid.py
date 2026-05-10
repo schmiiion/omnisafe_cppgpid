@@ -21,6 +21,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from jumpy.numpy import dtype
+import os
+import csv
 from torch.utils.data import DataLoader, TensorDataset
 
 from omnisafe.algorithms import registry
@@ -61,14 +63,18 @@ class CPPGPID(PPO):
             device=self._device
         )
         self._lagrange: PIDLagrangian = PIDLagrangian(**self._cfgs.lagrange_cfgs)
-        self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
-        init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
-        self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
-        self._beta_optimizer = torch.optim.Adam(
-            [self._log_beta_clone],
-            lr=self._cfgs.algo_cfgs.beta_lr,
-            betas=(0.0, 0.999)  # Disabled momentum for tight locking
-        )
+
+        if not self._cfgs.algo_cfgs.static_beta_clone:
+            self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
+            init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
+            self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
+            self._beta_optimizer = torch.optim.Adam(
+                [self._log_beta_clone],
+                lr=self._cfgs.algo_cfgs.beta_lr,
+                betas=(0.0, 0.999)  # Disabled momentum for tight locking
+            )
+        else:
+            print(f"use static beta_clone with value: {self._cfgs.algo_cfgs.beta_clone}")
 
     def _init_log(self) -> None:
         """Log the CPPOPID specific information.
@@ -80,8 +86,17 @@ class CPPGPID(PPO):
         +----------------------------+------------------------------+
         """
         super()._init_log()
+
+        if self._cfgs.logger_cfgs.log_aux_kl_detailed and self._logger._maste_proc:
+            self._aux_csv_path = os.path.join(self._logger.log_dir, 'aux_kl_inspection.csv')
+            # Open file with line buffering (buffering=1) so data writes even if crash occurs
+            self._aux_file = open(self._aux_csv_path, 'w', encoding='utf-8', newline='')
+            self._aux_writer = csv.writer(self._aux_file)
+            self._aux_writer.writerow(['training_phase', 'aux_epoch', 'kl_difference'])
+
         self._logger.register_key('Metrics/LagrangeMultiplier')
         self._logger.register_key('Metrics/BetaClone')
+        self._logger.register_key('Metrics/FinalAuxKL', min_and_max=True)
 
     def learn(self) -> tuple[float, float, float]:
         """This is main function for algorithm update.
@@ -154,9 +169,12 @@ class CPPGPID(PPO):
             ep_len = self._logger.get_stats('Metrics/EpLen')[0]
 
             self._compute_old_policy_snapshot() #populate the aux buffer with pi_old(.|s_t) for all states in it
-            for aux_phase in range(self._cfgs.algo_cfgs.E_aux):
-                self._aux_update()
+            for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
+                print(f"Phase {aux_epoch+1} of {self._cfgs.algo_cfgs.E_aux+1}")
+                self._aux_update(phase, aux_epoch)
 
+        if self._cfgs.logger_cfgs.log_aux_kl_detailed and self._logger._maste_proc:
+            self._aux_file.close()
         self._logger.close()
         self._env.close()
 
@@ -205,7 +223,7 @@ class CPPGPID(PPO):
             self._buf._aux_buffer.data['std_old'][start:end] = dist.stddev
 
 
-    def _aux_update(self) -> None:
+    def _aux_update(self, phase, aux_epoch) -> None:
         data = self._buf.get_aux_data()
         dataset_size = data["obs"].shape[0]
         batch_size = dataset_size // (self._cfgs.algo_cfgs.N_pi * self._cfgs.algo_cfgs.number_aux_mb_per_Npi)
@@ -236,16 +254,19 @@ class CPPGPID(PPO):
             kl = torch.distributions.kl.kl_divergence(old_distribution, new_distribution).mean()
             #kl = distributed.dist_avg(kl)
 
-            beta_loss = -torch.exp(self._log_beta_clone) * (kl.detach() - self._aux_kl_target)
-            self._beta_optimizer.zero_grad()
-            beta_loss.backward()
-            self._beta_optimizer.step()
-            with torch.no_grad():
-                self._log_beta_clone.clamp_(min=-9.2, max=4.6) # evaluates to 1e-4 and 100
-                current_beta_val = torch.exp(self._log_beta_clone).item()
-                self._logger.store({'Metrics/BetaClone': current_beta_val})
+            if self._cfgs.algo_cfgs.static_beta_clone:
+                L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + self._cfgs.algo_cfgs.beta_clone * kl
+            else:
+                beta_loss = -torch.exp(self._log_beta_clone) * (kl.detach() - self._aux_kl_target)
+                self._beta_optimizer.zero_grad()
+                beta_loss.backward()
+                self._beta_optimizer.step()
+                with torch.no_grad():
+                    self._log_beta_clone.clamp_(min=-9.2, max=4.6) # evaluates to 1e-4 and 100
+                    current_beta_val = torch.exp(self._log_beta_clone).item()
+                    self._logger.store({'Metrics/BetaClone': current_beta_val})
 
-            L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
+                L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
             self._actor_critic.actor_optimizer.zero_grad()
             L_joint.backward()
             self._actor_critic.actor_optimizer.step()
@@ -265,6 +286,30 @@ class CPPGPID(PPO):
             c_critic_loss.backward()
             self._actor_critic.cost_critic_optimizer.step()
 
+        # --- FULL BUFFER KL CALCULATION ---
+        with torch.no_grad():
+            total_kl = 0.0
+            print(f" phase {phase}, aux_epoch {aux_epoch}, eval_batch 4096 and {dataset_size} samples")
+            eval_batch_size = 4096
+
+            for start in range(0, dataset_size, eval_batch_size):
+                end = min(start + eval_batch_size, dataset_size)
+
+                b_obs = data['obs'][start:end]
+                b_mean_old = data['mean_old'][start:end]
+                b_std_old = data['std_old'][start:end]
+
+                dist_old = torch.distributions.Normal(b_mean_old, b_std_old)
+                dist_new = self._actor_critic.actor._distribution(b_obs)
+                kl_sum = torch.distributions.kl.kl_divergence(dist_old, dist_new).sum(-1).sum() #erst sample, dann batch level
+                total_kl += kl_sum.item()
+
+            avg_full_kl = total_kl / dataset_size
+
+            self._logger.store({'Metrics/FinalAuxKL': avg_full_kl})
+            if self._cfgs.logger_cfgs.log_aux_kl_detailed and self._logger._maste_proc:
+                self._aux_writer.writerow([phase, aux_epoch, avg_full_kl])
+                self._aux_file.flush()
 
     def _compute_adv_surrogate(self, adv_r: torch.Tensor, adv_c: torch.Tensor) -> torch.Tensor:
         r"""Compute surrogate loss.

@@ -15,7 +15,7 @@
 
 defaults:
   # seed for random number generator
-  seed: 1000
+  seed: 3333
   # training configurations
   train_cfgs:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.
@@ -23,7 +23,7 @@ defaults:
     # number of threads for torch
     torch_threads: 1
     # number of vectorized environments
-    vector_env_nums: 1
+    vector_env_nums: 20
     # number of parallel agent, similar to a3c
     parallel: 1
     # total number of steps to train
@@ -39,11 +39,16 @@ defaults:
     # number of minibatches per N_pi rollout in the auxiliary phase
     number_aux_mb_per_Npi: 16
     # Scaling the cost signal during the auxiliary phase
-    alpha_cost: 1.0
+    alpha_cost: 0.0
     # number of steps to update the policy
     steps_per_epoch: 20000
     # number of iterations to update the policy | THIS IS THE E_pi from PPG
     update_iters: 2
+    #Hyperparam to switch between beta clone as static value and KL budget
+    static_beta_clone: False
+    ##################### beta_clone as static hyperparam
+    beta_clone: 1.0
+    ##################### beta_clone as KL budget:
     # KL bound that the beta_clone params aims to achieve during the aux update
     aux_kl_target: 0.01
     # init of the beta_clone learnanble param that scales the KL term in the aux objective.
@@ -106,6 +111,8 @@ defaults:
     log_dir: "./runs"
     # save model path
     window_lens: 100
+    #log the kl divergences at the end of aux phases in a separate file
+    log_aux_kl_detailed: True
   # model configurations
   model_cfgs:
     # weight initialization mode
