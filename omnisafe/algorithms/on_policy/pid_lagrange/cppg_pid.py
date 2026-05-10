@@ -64,7 +64,9 @@ class CPPGPID(PPO):
         )
         self._lagrange: PIDLagrangian = PIDLagrangian(**self._cfgs.lagrange_cfgs)
 
-        if not self._cfgs.algo_cfgs.static_beta_clone:
+        if self._cfgs.algo_cfgs.static_beta_clone:
+            print(f"use static beta_clone with value: {self._cfgs.algo_cfgs.beta_clone}")
+        else:
             self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
             init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
             self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
@@ -73,8 +75,7 @@ class CPPGPID(PPO):
                 lr=self._cfgs.algo_cfgs.beta_lr,
                 betas=(0.0, 0.999)  # Disabled momentum for tight locking
             )
-        else:
-            print(f"use static beta_clone with value: {self._cfgs.algo_cfgs.beta_clone}")
+
 
     def _init_log(self) -> None:
         """Log the CPPOPID specific information.
