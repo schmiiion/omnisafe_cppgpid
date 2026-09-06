@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 
 # 1. Setup paths and your specific color palette
-root_dir = Path("runs/CPPGPID-{SafetyCarGoal1-v0}")
+# root_dir = Path("runs/CPPGPID-{SafetyCarGoal1-v0}")
+root_dir = Path("runs/CPPGPID-{SafetyHalfCheetahVelocity-v1}")
 target_hyperparam = "alpha_cost"
 data_list = []
 

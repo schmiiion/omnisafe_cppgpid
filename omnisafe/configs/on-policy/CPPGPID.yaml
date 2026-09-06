@@ -15,7 +15,7 @@
 
 defaults:
   # seed for random number generator
-  seed: 3333
+  seed: 6969
   # training configurations
   train_cfgs:
     # device to use for training, options: cpu, cuda, cuda:0, cuda:0,1, etc.

@@ -93,7 +93,7 @@ class CPPGPID(PPO):
             # Open file with line buffering (buffering=1) so data writes even if crash occurs
             self._aux_file = open(self._aux_csv_path, 'w', encoding='utf-8', newline='')
             self._aux_writer = csv.writer(self._aux_file)
-            self._aux_writer.writerow(['training_phase', 'aux_epoch', 'kl_difference'])
+            self._aux_writer.writerow(['training_phase', 'aux_epoch', 'kl_divergence', 'beta_clone'])
 
         self._logger.register_key('Metrics/LagrangeMultiplier')
         self._logger.register_key('Metrics/BetaClone')
@@ -171,7 +171,7 @@ class CPPGPID(PPO):
 
             self._compute_old_policy_snapshot() #populate the aux buffer with pi_old(.|s_t) for all states in it
             for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
-                print(f"Phase {aux_epoch+1} of {self._cfgs.algo_cfgs.E_aux+1}")
+                print(f"Aux epoch {aux_epoch+1} of {self._cfgs.algo_cfgs.E_aux+1}")
                 self._aux_update(phase, aux_epoch)
 
         if self._cfgs.logger_cfgs.log_aux_kl_detailed and self._logger._maste_proc:
@@ -267,7 +267,8 @@ class CPPGPID(PPO):
                     current_beta_val = torch.exp(self._log_beta_clone).item()
                     self._logger.store({'Metrics/BetaClone': current_beta_val})
 
-                L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
+                # L_joint = L_reward + self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
+                L_joint = self._cfgs.algo_cfgs.alpha_cost * L_cost + torch.exp(self._log_beta_clone.detach()) * kl
             self._actor_critic.actor_optimizer.zero_grad()
             L_joint.backward()
             self._actor_critic.actor_optimizer.step()
@@ -309,7 +310,9 @@ class CPPGPID(PPO):
 
             self._logger.store({'Metrics/FinalAuxKL': avg_full_kl})
             if self._cfgs.logger_cfgs.log_aux_kl_detailed and self._logger._maste_proc:
-                self._aux_writer.writerow([phase, aux_epoch, avg_full_kl])
+                if self._cfgs.algo_cfgs.static_beta_clone:
+                    current_beta_val = self._cfgs.algo_cfgs.beta_clone
+                self._aux_writer.writerow([phase, aux_epoch, avg_full_kl, current_beta_val])
                 self._aux_file.flush()
 
     def _compute_adv_surrogate(self, adv_r: torch.Tensor, adv_c: torch.Tensor) -> torch.Tensor:
