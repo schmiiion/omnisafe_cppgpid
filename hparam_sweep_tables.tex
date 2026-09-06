@@ -1,0 +1,103 @@
+\begin{table*}[t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{3pt}
+\caption{Final performance on SafetyCarButton1-v0. Sweep entries report median $\pm$ IQR; baseline entries report the median with the reported interval.}
+\label{tab:hparam-safetycarbutton1-v0}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+Algorithm & $\alpha_{\mathrm{cost}}=0.0$ & $\alpha_{\mathrm{cost}}=0.5$ & $\alpha_{\mathrm{cost}}=1.0$ & $\alpha_{\mathrm{cost}}=1.5$ & $\alpha_{\mathrm{cost}}=2.0$ & Baseline \\
+\hline
+CPPGPID & \begin{tabular}{@{}c@{}}Ret: \textbf{0.184} $\pm$ 0.802 \\ Cost: 24.418 $\pm$ 3.359\end{tabular} & \begin{tabular}{@{}c@{}}Ret: -0.424 $\pm$ 0.275 \\ Cost: \textbf{21.85} $\pm$ 4.961\end{tabular} & \begin{tabular}{@{}c@{}}Ret: -0.35 $\pm$ 0.353 \\ Cost: 22.675 $\pm$ 3.511\end{tabular} & \begin{tabular}{@{}c@{}}Ret: -0.43 $\pm$ 0.283 \\ Cost: 22.473 $\pm$ 1.078\end{tabular} & \begin{tabular}{@{}c@{}}Ret: -0.479 $\pm$ 0.245 \\ Cost: 22.89 $\pm$ 3.544\end{tabular} & \begin{tabular}{@{}c@{}}Ret: -0.8 (-1.2, -0.5) \\ Cost: 25.3 (19.0, 33.8)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PTRPOPID & \begin{tabular}{@{}c@{}}Ret: 0.204 $\pm$ 0.696 \\ Cost: 26.952 $\pm$ 5.341\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{0.805} $\pm$ 0.482 \\ Cost: 23.29 $\pm$ 2.465\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 0.547 $\pm$ 0.632 \\ Cost: 23.387 $\pm$ 5.866\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 0.675 $\pm$ 0.66 \\ Cost: 22.265 $\pm$ 5.054\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 0.616 $\pm$ 0.329 \\ Cost: 26.215 $\pm$ 9.535\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 0.2 (0.1, 0.6) \\ Cost: \textbf{21.7} (20.1, 29.0)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PhasicCPO & \begin{tabular}{@{}c@{}}Ret: 0.809 $\pm$ 0.605 \\ Cost: 32.345 $\pm$ 4.585\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 1.038 $\pm$ 0.796 \\ Cost: \textbf{30.988} $\pm$ 2.333\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{1.238} $\pm$ 0.496 \\ Cost: 32.628 $\pm$ 0.867\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 1.152 $\pm$ 0.458 \\ Cost: 32.183 $\pm$ 2.052\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 1.045 $\pm$ 0.472 \\ Cost: 31.11 $\pm$ 5.399\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 1.0 (0.8, 1.4) \\ Cost: 35.1 (32.5, 38.5)\end{tabular} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{3pt}
+\caption{Final performance on SafetyCarGoal1-v0. Sweep entries report median $\pm$ IQR; baseline entries report the median with the reported interval.}
+\label{tab:hparam-safetycargoal1-v0}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+Algorithm & $\alpha_{\mathrm{cost}}=0.0$ & $\alpha_{\mathrm{cost}}=0.5$ & $\alpha_{\mathrm{cost}}=1.0$ & $\alpha_{\mathrm{cost}}=1.5$ & $\alpha_{\mathrm{cost}}=2.0$ & Baseline \\
+\hline
+CPPGPID & \begin{tabular}{@{}c@{}}Ret: \textbf{25.135} $\pm$ 2.346 \\ Cost: 25.23 $\pm$ 3.794\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 21.995 $\pm$ 2.159 \\ Cost: 23.872 $\pm$ 1.241\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 20.615 $\pm$ 2.868 \\ Cost: 23.427 $\pm$ 2.014\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 21.318 $\pm$ 3.509 \\ Cost: 23.465 $\pm$ 1.636\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.394 $\pm$ 2.447 \\ Cost: 25.188 $\pm$ 1.253\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 10.5 (6.2, 12.3) \\ Cost: \textbf{22.6} (21.1, 24.8)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PTRPOPID & \begin{tabular}{@{}c@{}}Ret: 28.064 $\pm$ 2.75 \\ Cost: 25.015 $\pm$ 2.728\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 28.355 $\pm$ 2.069 \\ Cost: 24.75 $\pm$ 4.74\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{28.841} $\pm$ 0.973 \\ Cost: 26.465 $\pm$ 2.894\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 28.46 $\pm$ 1.429 \\ Cost: 24.92 $\pm$ 2.396\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 27.525 $\pm$ 1.807 \\ Cost: \textbf{23.487} $\pm$ 2.048\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 24.5 (22.7, 25.6) \\ Cost: 23.9 (22.1, 24.7)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PhasicCPO & \begin{tabular}{@{}c@{}}Ret: 26.523 $\pm$ 1.186 \\ Cost: 26.42 $\pm$ 0.765\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 26.743 $\pm$ 1.683 \\ Cost: 26.562 $\pm$ 1.593\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 26.167 $\pm$ 1.275 \\ Cost: 26.457 $\pm$ 0.6\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{26.849} $\pm$ 1.662 \\ Cost: \textbf{25.883} $\pm$ 1.536\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 26.418 $\pm$ 1.721 \\ Cost: 26.158 $\pm$ 0.594\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.5 (22.3, 25.0) \\ Cost: 28.2 (26.6, 29.2)\end{tabular} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{3pt}
+\caption{Final performance on SafetyHalfCheetahVelocity-v1. Sweep entries report median $\pm$ IQR; baseline entries report the median with the reported interval.}
+\label{tab:hparam-safetyhalfcheetahvelocity-v1}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+Algorithm & $\alpha_{\mathrm{cost}}=0.0$ & $\alpha_{\mathrm{cost}}=0.5$ & $\alpha_{\mathrm{cost}}=1.0$ & $\alpha_{\mathrm{cost}}=1.5$ & $\alpha_{\mathrm{cost}}=2.0$ & Baseline \\
+\hline
+CPPGPID & \begin{tabular}{@{}c@{}}Ret: 1612.53 $\pm$ 686.279 \\ Cost: 18.653 $\pm$ 6.186\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2387.36 $\pm$ 340.765 \\ Cost: 19.293 $\pm$ 3.974\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2386.77 $\pm$ 523.112 \\ Cost: 17.933 $\pm$ 6.822\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2196.93 $\pm$ 729.574 \\ Cost: 17.885 $\pm$ 3.599\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2134.38 $\pm$ 901.319 \\ Cost: \textbf{15.67} $\pm$ 12.324\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{3029.3} (3006.8, 3047.6) \\ Cost: 25.6 (23.9, 26.9)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PTRPOPID & \begin{tabular}{@{}c@{}}Ret: 2098.37 $\pm$ 544.505 \\ Cost: 24.825 $\pm$ 2.822\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2058.52 $\pm$ 591.439 \\ Cost: \textbf{21.17} $\pm$ 4.086\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2068.01 $\pm$ 523.554 \\ Cost: 21.578 $\pm$ 3.454\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2069.03 $\pm$ 104.026 \\ Cost: 22.678 $\pm$ 4.852\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2080.38 $\pm$ 501.071 \\ Cost: 21.938 $\pm$ 4.866\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{2266.8} (1861.2, 2833.7) \\ Cost: 23.9 (21.3, 25.2)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PhasicCPO & \begin{tabular}{@{}c@{}}Ret: 2027.2 $\pm$ 599.578 \\ Cost: 20.54 $\pm$ 2.934\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2059.61 $\pm$ 784.258 \\ Cost: 20.9 $\pm$ 1.281\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2021.42 $\pm$ 546.159 \\ Cost: 20.423 $\pm$ 3.081\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2036.8 $\pm$ 502.13 \\ Cost: 21.537 $\pm$ 4.435\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 2038.79 $\pm$ 694.198 \\ Cost: \textbf{20.308} $\pm$ 3.95\end{tabular} & \begin{tabular}{@{}c@{}}Ret: \textbf{2605.2} (1855.4, 2755.6) \\ Cost: 21.2 (20.3, 23.1)\end{tabular} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{3pt}
+\caption{Final performance on SafetyPointGoal1-v0. Sweep entries report median $\pm$ IQR; baseline entries report the median with the reported interval.}
+\label{tab:hparam-safetypointgoal1-v0}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+Algorithm & $\alpha_{\mathrm{cost}}=0.0$ & $\alpha_{\mathrm{cost}}=0.5$ & $\alpha_{\mathrm{cost}}=1.0$ & $\alpha_{\mathrm{cost}}=1.5$ & $\alpha_{\mathrm{cost}}=2.0$ & Baseline \\
+\hline
+CPPGPID & \begin{tabular}{@{}c@{}}Ret: \textbf{23.172} $\pm$ 1.551 \\ Cost: 26.338 $\pm$ 1.65\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 22.341 $\pm$ 2.892 \\ Cost: 24.803 $\pm$ 1.564\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 22.479 $\pm$ 2.583 \\ Cost: 24.793 $\pm$ 3.483\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 22.138 $\pm$ 1.859 \\ Cost: 24.672 $\pm$ 4.261\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.152 $\pm$ 1.654 \\ Cost: 25.562 $\pm$ 1.459\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 10.2 (6.5, 13.3) \\ Cost: \textbf{23.2} (19.5, 26.8)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PTRPOPID & \begin{tabular}{@{}c@{}}Ret: \textbf{24.544} $\pm$ 2.22 \\ Cost: 25.35 $\pm$ 1.382\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 24.37 $\pm$ 1.394 \\ Cost: 24.673 $\pm$ 2.038\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.616 $\pm$ 1.383 \\ Cost: \textbf{23.468} $\pm$ 2.159\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 24.48 $\pm$ 1.292 \\ Cost: 25.552 $\pm$ 2.441\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 24.441 $\pm$ 2.173 \\ Cost: 26.238 $\pm$ 1.306\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 20.4 (18.8, 21.9) \\ Cost: 25.9 (22.7, 28.2)\end{tabular} \\
+\noalign{\vskip 0.65em}
+\hline
+\noalign{\vskip 0.65em}
+PhasicCPO & \begin{tabular}{@{}c@{}}Ret: \textbf{24.353} $\pm$ 1.68 \\ Cost: 26.715 $\pm$ 0.869\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.803 $\pm$ 1.192 \\ Cost: \textbf{26.125} $\pm$ 0.62\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 24.241 $\pm$ 0.658 \\ Cost: 26.375 $\pm$ 1.454\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.895 $\pm$ 1.387 \\ Cost: 26.25 $\pm$ 0.52\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 23.681 $\pm$ 0.959 \\ Cost: 26.417 $\pm$ 1.114\end{tabular} & \begin{tabular}{@{}c@{}}Ret: 21.4 (19.8, 22.2) \\ Cost: 28.2 (27.3, 29.3)\end{tabular} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
