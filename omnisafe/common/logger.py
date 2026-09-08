@@ -193,6 +193,73 @@ class Logger:  # pylint: disable=too-many-instance-attributes
             }
             torch.save(params, path)
 
+    def save_actor_snapshot(
+        self,
+        phase: int,
+        stage: str,
+        stage_iteration: int,
+        total_env_steps: int,
+    ) -> None:
+        """Save a self-describing actor snapshot for representation probing.
+
+        A ``stage_iteration`` of zero denotes the snapshot immediately before the corresponding
+        policy or auxiliary phase. Positive values denote snapshots after the corresponding policy
+        iteration or auxiliary epoch.
+
+        Args:
+            phase (int): Index of the policy/auxiliary phase.
+            stage (str): Training stage, either ``policy`` or ``auxiliary``.
+            stage_iteration (int): Number of completed iterations or epochs in the stage.
+            total_env_steps (int): Number of environment steps completed before the snapshot.
+        """
+        if self._maste_proc:
+            assert self._what_to_save is not None, 'Please setup torch saver first'
+            assert stage in {'policy', 'auxiliary'}, f'Unknown actor snapshot stage: {stage}'
+            directory = os.path.join(
+                self._log_dir,
+                'representation_checkpoints',
+                f'phase-{phase:03d}',
+            )
+            filename = (
+                f'policy-iteration-{stage_iteration:03d}.pt'
+                if stage == 'policy'
+                else f'aux-epoch-{stage_iteration:03d}.pt'
+            )
+            path = os.path.join(directory, filename)
+            os.makedirs(directory, exist_ok=True)
+
+            params = {
+                k: v.state_dict() if hasattr(v, 'state_dict') else v
+                for k, v in self._what_to_save.items()
+            }
+            actor = self._what_to_save.get('pi')
+            assert actor is not None, 'Actor snapshots require an actor registered under `pi`'
+
+            params['actor_spec'] = {
+                'class_path': f'{type(actor).__module__}.{type(actor).__qualname__}',
+                'actor_type': self._config.model_cfgs.actor_type,
+                'state_dict_key': 'pi',
+                'observation_shape': tuple(actor._obs_space.shape),
+                'action_shape': tuple(actor._act_space.shape),
+                'hidden_sizes': list(self._config.model_cfgs.actor.hidden_sizes),
+                'activation': self._config.model_cfgs.actor.activation,
+                'weight_initialization_mode': self._config.model_cfgs.weight_initialization_mode,
+                'representation_module': 'shared_backbone',
+                'normalizer_state_dict_key': (
+                    'obs_normalizer' if 'obs_normalizer' in params else None
+                ),
+            }
+            params['config'] = self._config.todict()
+            params['metadata'] = {
+                'snapshot_schema_version': 1,
+                'phase': phase,
+                'stage': stage,
+                'stage_iteration': stage_iteration,
+                'total_env_steps': total_env_steps,
+                'observation_normalized': 'obs_normalizer' in params,
+            }
+            torch.save(params, path)
+
     def register_key(
         self,
         key: str,

@@ -20,7 +20,6 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-from jumpy.numpy import dtype
 from torch.utils.data import DataLoader, TensorDataset
 
 from omnisafe.algorithms import registry
@@ -102,10 +101,21 @@ class CPPGPID(PPO):
 
         for phase in range(self._number_phases):
             print(f"Phase {phase+1} of {self._number_phases+1}")
+            self._logger.save_actor_snapshot(
+                phase=phase,
+                stage='policy',
+                stage_iteration=0,
+                total_env_steps=(
+                    phase
+                    * self._cfgs.algo_cfgs.N_pi
+                    * self._cfgs.algo_cfgs.steps_per_epoch
+                ),
+            )
 
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
 
                 current_epoch = phase * self._cfgs.algo_cfgs.N_pi + policy_phase
+                total_env_steps = (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch
 
                 rollout_time = time.time()
                 self._env.rollout(
@@ -128,7 +138,7 @@ class CPPGPID(PPO):
 
                 self._logger.store(
                     {
-                        'TotalEnvSteps': (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch,
+                        'TotalEnvSteps': total_env_steps,
                         'Time/FPS': self._cfgs.algo_cfgs.steps_per_epoch / (time.time() - rollout_time),
                         'Time/Total': (time.time() - start_time),
                         'Time/Epoch': (time.time() - rollout_time),
@@ -148,14 +158,32 @@ class CPPGPID(PPO):
                     current_epoch + 1
                 ) == self._cfgs.train_cfgs.epochs:
                     self._logger.torch_save()
+                self._logger.save_actor_snapshot(
+                    phase=phase,
+                    stage='policy',
+                    stage_iteration=policy_phase + 1,
+                    total_env_steps=total_env_steps,
+                )
 
             ep_ret = self._logger.get_stats('Metrics/EpRet')[0]
             ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
             ep_len = self._logger.get_stats('Metrics/EpLen')[0]
 
             self._compute_old_policy_snapshot() #populate the aux buffer with pi_old(.|s_t) for all states in it
-            for aux_phase in range(self._cfgs.algo_cfgs.E_aux):
+            self._logger.save_actor_snapshot(
+                phase=phase,
+                stage='auxiliary',
+                stage_iteration=0,
+                total_env_steps=total_env_steps,
+            )
+            for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
                 self._aux_update()
+                self._logger.save_actor_snapshot(
+                    phase=phase,
+                    stage='auxiliary',
+                    stage_iteration=aux_epoch + 1,
+                    total_env_steps=total_env_steps,
+                )
 
         self._logger.close()
         self._env.close()

@@ -96,9 +96,20 @@ class PhasicCPO(TRPO):
         for phase in range(self._number_phases):
 
             print("start policy phase")
+            self._logger.save_actor_snapshot(
+                phase=phase,
+                stage='policy',
+                stage_iteration=0,
+                total_env_steps=(
+                    phase
+                    * self._cfgs.algo_cfgs.N_pi
+                    * self._cfgs.algo_cfgs.steps_per_epoch
+                ),
+            )
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
 
                 current_epoch = phase * self._cfgs.algo_cfgs.N_pi + policy_phase
+                total_env_steps = (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch
 
                 rollout_time = time.time()
                 self._env.rollout(
@@ -121,7 +132,7 @@ class PhasicCPO(TRPO):
 
                 self._logger.store(
                     {
-                        'TotalEnvSteps': (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch,
+                        'TotalEnvSteps': total_env_steps,
                         'Time/FPS': self._cfgs.algo_cfgs.steps_per_epoch / (time.time() - rollout_time),
                         'Time/Total': (time.time() - start_time),
                         'Time/Epoch': (time.time() - rollout_time),
@@ -141,6 +152,12 @@ class PhasicCPO(TRPO):
                     current_epoch + 1
                 ) == self._cfgs.train_cfgs.epochs:
                     self._logger.torch_save()
+                self._logger.save_actor_snapshot(
+                    phase=phase,
+                    stage='policy',
+                    stage_iteration=policy_phase + 1,
+                    total_env_steps=total_env_steps,
+                )
 
             ep_ret = self._logger.get_stats('Metrics/EpRet')[0]
             ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
@@ -148,8 +165,20 @@ class PhasicCPO(TRPO):
 
             self._compute_old_policy_snapshot()  # populate the aux buffer with pi_old(.|s_t) for all states in it
             print("start aux phase")
-            for aux_phase in range(self._cfgs.algo_cfgs.E_aux):
+            self._logger.save_actor_snapshot(
+                phase=phase,
+                stage='auxiliary',
+                stage_iteration=0,
+                total_env_steps=total_env_steps,
+            )
+            for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
                 self._aux_update()
+                self._logger.save_actor_snapshot(
+                    phase=phase,
+                    stage='auxiliary',
+                    stage_iteration=aux_epoch + 1,
+                    total_env_steps=total_env_steps,
+                )
 
         self._logger.close()
         self._env.close()
@@ -716,4 +745,3 @@ class PhasicCPO(TRPO):
                 param.data.copy_(flat_params[offset:offset + numel].view_as(param))
                 offset += numel
         assert offset == len(flat_params), f'Lengths do not match: {offset} vs. {len(flat_params)}'
-
