@@ -417,3 +417,9 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# Generated linear-probing artifacts
+linear_probing/data/
+linear_probing/results/
+linear_probing/visualizations/
+linear_probing/plots/

@@ -1,0 +1,106 @@
+dataset:
+  env_id: SafetyPointGoal1-v0
+  num_samples: 50
+  candidate_pool_multiplier: 1
+  # Used by run_probes: latest, unversioned, or an exact timestamp directory.
+  version: latest
+  output_path: linear_probing/data/probe_dataset.npz
+  metadata_path: linear_probing/data/probe_dataset.metadata.json
+  seed: 10
+  env_kwargs: {} # Optional keyword arguments forwarded to safety_gymnasium.make.
+  max_steps_per_episode: 200 # Force a reset regularly so the dataset contains many independently sampled layouts.
+  agent_radius: 0.1 # Point has radius 0.1. Change this when probing another robot morphology.
+
+collection:
+  action_noise_std: 0.1 # Gaussian noise added to evasive-controller and deterministic restored-policy actions.
+  evasive_turn_gain: 1.5
+  # Exact collector snapshots. If empty, discover them under snapshots.collection_directory.
+  converged_policy_paths: []
+
+planner:
+  # World bounds [xmin, xmax, ymin, ymax] for the approximate safe-path grid planner.
+  bounds: [-2.5, 2.5, -2.5, 2.5]
+  grid_resolution: 0.1 # Smaller cells improve path fidelity but increase dataset-build time.
+  # Angular search used by minimum_evasive_turn and best_avoidance_side.
+  avoidance_angle_step_degrees: 1.0 # Target resolution of the discrete search.
+  maximum_avoidance_angle_degrees: 90.0 # No valid ray within this range produces NaN.
+
+visualization:
+  # Number of randomly selected dataset observations to explain. Set to 0 to disable.
+  num_examples: 10
+  seed: 0
+  camera_name: fixedfar
+  width: 800
+  height: 800
+  output_directory: linear_probing/visualizations
+
+snapshots:
+  # Held-out runs used only to generate the converged-policy portion of the dataset.
+  collection_directory: runs/linear-probing-collectors
+  # Experimental runs whose policy/auxiliary snapshots are linearly probed.
+  probing_directory: runs/linear-probing-encoders
+  pattern: "**/representation_checkpoints/phase-*/*.pt"
+  # `phases` and per-stage iterations accept: all, latest, or a list such as [30, 31].
+  collection_selection:
+    phases: latest
+    stages: [auxiliary]
+    policy_iterations: latest
+    auxiliary_epochs: latest
+  probing_selection:
+    phases: all
+    stages: [policy] #[policy, auxiliary]
+    policy_iterations: all
+    auxiliary_epochs: all
+  device: cpu
+  # Probe preprocessing only. Restored collector policies always use their saved normalizer.
+  use_snapshot_normalizer: true
+
+probing:
+  # Set to false to generate/store the dataset and explanation figures without fitting probes.
+  enabled: true
+  output_csv: linear_probing/results/linear_probe_results.csv
+  # Hold out complete episodes within each source; probing needs >=2 sampled episodes/source.
+  test_fraction: 0.2
+  seed: 0
+  ridge_alpha: 1.0
+  logistic_c: 1.0
+  max_iterations: 2000
+  embedding_batch_size: 2048
+
+aux_only_plotting:
+  # Probe-result run to visualize: latest, unversioned, or an exact timestamp directory.
+  results_version: 20260911T073218.177976Z
+  output_directory: linear_probing/plots/aux-only
+
+policy_only_plotting:
+  # Probe-result run to visualize: latest, unversioned, or an exact timestamp directory.
+  results_version: 20260911T093443.360853Z
+  output_directory: linear_probing/plots/policy-only
+
+# A disabled task remains in the dataset but is omitted from figures and probe fitting.
+tasks:
+  agent_related:
+    easy:
+      agent_velocity: true             # Planar forward/lateral velocimeter vector.
+    medium:
+      signed_slip_angle: true          # Heading-to-velocity angle.
+    hard:
+      agent_kinetic_energy: true       # MuJoCo generalized kinetic energy.
+
+  goal_related:
+    easy:
+      goal_distance: true
+      signed_goal_angle: true
+
+  hazard_related:
+    easy:
+      nearest_hazard_distance: true
+    medium:
+      direct_path_blocked: true        # Binary classification.
+      direct_path_hazard_count: true   # Regression/count.
+      direct_path_signed_clearance: true
+    hard:
+      minimum_evasive_turn: true
+      best_avoidance_side: true        # Left/right classification on blocked paths.
+      safe_path_detour_ratio: true
+      hazard_dispersion: true          # Normalized to [0, 1].
