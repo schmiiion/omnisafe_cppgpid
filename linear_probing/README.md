@@ -185,6 +185,15 @@ python -m linear_probing.policy_only_plotting \
   --config linear_probing/linear_probing_config.yaml
 ```
 
+`training_curve_plotting.py` creates a two-panel episode-return/episode-cost figure for the single
+run configured under `training_curve_plotting.run_directory`. It uses the raw epoch-level values
+from that run's `progress.csv` and does not add cross-seed uncertainty.
+
+```bash
+python -m linear_probing.training_curve_plotting \
+  --config linear_probing/linear_probing_config.yaml
+```
+
 The dataset is split by complete episodes instead of individual observations, preventing the same
 randomized layout from appearing on both sides. The split is also stratified by collection source
 when enough episodes are available, so random, evasive, and restored-policy observations are not

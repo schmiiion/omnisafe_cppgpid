@@ -39,6 +39,7 @@ from linear_probing.targets import (
     Scene,
     point_segment_distances,
 )
+from linear_probing.training_curve_plotting import CURVE_COLUMNS, load_training_curves
 
 
 def _scene(
@@ -329,6 +330,33 @@ class TestLinearProbingCorrectness(TestCase):
 
         self.assertEqual(coordinates, [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)])
         np.testing.assert_array_equal(timeline['goal_distance'], values.reshape(2, 6))
+
+    def test_training_curve_loader_preserves_logged_values(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'progress.csv'
+            with path.open('w', newline='', encoding='utf-8') as output:
+                writer = csv.DictWriter(output, fieldnames=list(CURVE_COLUMNS.values()))
+                writer.writeheader()
+                writer.writerows(
+                    [
+                        {
+                            'TotalEnvSteps': 10,
+                            'Metrics/EpRet': 1.5,
+                            'Metrics/EpCost': 4.0,
+                        },
+                        {
+                            'TotalEnvSteps': 20,
+                            'Metrics/EpRet': 2.5,
+                            'Metrics/EpCost': 3.0,
+                        },
+                    ],
+                )
+
+            curves = load_training_curves(path)
+
+        np.testing.assert_array_equal(curves['steps'], [10.0, 20.0])
+        np.testing.assert_array_equal(curves['return'], [1.5, 2.5])
+        np.testing.assert_array_equal(curves['cost'], [4.0, 3.0])
 
     def test_required_normalizer_state_cannot_be_missing(self) -> None:
         snapshot = {

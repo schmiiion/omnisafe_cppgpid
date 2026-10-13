@@ -77,6 +77,10 @@ policy_only_plotting:
   results_version: 20260911T093443.360853Z
   output_directory: linear_probing/plots/policy-only
 
+training_curve_plotting:
+  run_directory: runs/linear-probing-encoders/seed-1001-2026-09-08-21-11-45
+  output_directory: linear_probing/plots/training-curves
+
 # A disabled task remains in the dataset but is omitted from figures and probe fitting.
 tasks:
   agent_related:
