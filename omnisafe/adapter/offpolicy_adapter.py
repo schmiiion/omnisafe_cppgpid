@@ -21,7 +21,7 @@ from typing import Any
 import torch
 
 from omnisafe.adapter.online_adapter import OnlineAdapter
-from omnisafe.common.buffer import VectorOffPolicyBuffer
+from omnisafe.common.buffer import VectorMRQReplayBuffer, VectorOffPolicyBuffer
 from omnisafe.common.logger import Logger
 from omnisafe.models.actor_critic.constraint_actor_q_critic import ConstraintActorQCritic
 from omnisafe.utils.config import Config
@@ -127,7 +127,9 @@ class OffPolicyAdapter(OnlineAdapter):
         """
         for _ in range(rollout_step):
             if use_rand_action:
-                act = (torch.rand(self.action_space.shape) * 2 - 1).unsqueeze(0).to(self._device)  # type: ignore
+                act = torch.rand(
+                    (self._env.num_envs, *self.action_space.shape), device=self._device,
+                ) * 2 - 1
             else:
                 act = agent.step(self._current_obs, deterministic=False)
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
@@ -141,14 +143,20 @@ class OffPolicyAdapter(OnlineAdapter):
                     self._log_metrics(logger, idx)
                     self._reset_log(idx)
 
-            buffer.store(
-                obs=self._current_obs,
-                act=act,
-                reward=reward,
-                cost=cost,
-                done=torch.logical_and(terminated, torch.logical_xor(terminated, truncated)),
-                next_obs=real_next_obs,
-            )
+            transition = {
+                'obs': self._current_obs,
+                'act': act,
+                'reward': reward,
+                'cost': cost,
+                'next_obs': real_next_obs,
+            }
+            if isinstance(buffer, VectorMRQReplayBuffer):
+                buffer.store(**transition, terminated=terminated, truncated=truncated)
+            else:
+                buffer.store(
+                    **transition,
+                    done=torch.logical_and(terminated, torch.logical_xor(terminated, truncated)),
+                )
 
             self._current_obs = next_obs
 

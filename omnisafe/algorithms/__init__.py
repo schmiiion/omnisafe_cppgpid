@@ -28,6 +28,8 @@ from omnisafe.algorithms.off_policy import (
     CRABS,
     DDPG,
     DDPGPID,
+    MRQLag,
+    MRQPID,
     SAC,
     SACPID,
     TD3,

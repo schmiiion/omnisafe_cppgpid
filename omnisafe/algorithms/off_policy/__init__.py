@@ -18,6 +18,8 @@ from omnisafe.algorithms.off_policy.crabs import CRABS
 from omnisafe.algorithms.off_policy.ddpg import DDPG
 from omnisafe.algorithms.off_policy.ddpg_lag import DDPGLag
 from omnisafe.algorithms.off_policy.ddpg_pid import DDPGPID
+from omnisafe.algorithms.off_policy.mrq_lag import MRQLag
+from omnisafe.algorithms.off_policy.mrq_pid import MRQPID
 from omnisafe.algorithms.off_policy.sac import SAC
 from omnisafe.algorithms.off_policy.sac_lag import SACLag
 from omnisafe.algorithms.off_policy.sac_pid import SACPID
@@ -37,4 +39,6 @@ __all__ = [
     'TD3PID',
     'SACPID',
     'CRABS',
+    'MRQLag',
+    'MRQPID',
 ]
