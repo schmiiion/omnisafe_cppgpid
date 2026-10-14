@@ -80,7 +80,10 @@ class OnPolicyAdapter(OnlineAdapter):
         obs, _ = self.reset()
         for step in track(
             range(steps_per_epoch),
-            description=f'Processing rollout for epoch: {logger.current_epoch}...',
+            description=(
+                f'Processing rollout for epoch: {logger.current_epoch}'
+                f'{logger.progress_context}...'
+            ),
         ):
             act, value_r, value_c, logp = agent.step(obs)
             next_obs, reward, cost, terminated, truncated, info = self.step(act)

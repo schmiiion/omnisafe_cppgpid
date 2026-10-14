@@ -1,0 +1,44 @@
+# From the repository root: python -m experiments.train_mrq_pid --check
+# Then run: python -m experiments.train_mrq_pid
+# First MR.Q-PID run on SafetyCarGoal1-v0. Unspecified parameters come from
+# omnisafe/configs/off-policy/MRQPID.yaml (MR.Q network, losses and PID settings).
+algo: MRQPID
+env_id: SafetyCarGoal1-v0
+
+# Safety Gymnasium's vector environment seeds workers with seed + worker index.
+# With four workers, this yields 0, 1, 2 and 3.
+seed: 0
+
+train_cfgs:
+  device: cpu
+  torch_threads: 2
+  vector_env_nums: 4
+  parallel: 1
+  total_steps: 5000000
+  eval_episodes: 1
+
+algo_cfgs:
+  steps_per_epoch: 2000
+  update_cycle: 1
+  # Four transitions arrive per vector step; retain MR.Q's one update per transition.
+  update_iters: 4
+  # VectorMRQReplayBuffer's size is per worker: 4 x 250000 = 1M transitions.
+  size: 250000
+  batch_size: 256
+  # Likewise, 4 x 2500 = 10000 random transitions before learning.
+  start_learning_steps: 2500
+
+logger_cfgs:
+  use_tensorboard: true
+  use_wandb: false
+  # Zero disables both the initial and periodic model checkpoints for MRQPID.
+  save_model_freq: 0
+  # Resolved relative to the repository root by train_mrq_pid.py.
+  log_dir: runs
+
+lagrange_cfgs:
+  # Experiment-specific PID gains.
+  cost_limit: 25.0
+  pid_kp: 0.005
+  pid_ki: 0.001
+  pid_kd: 0.001

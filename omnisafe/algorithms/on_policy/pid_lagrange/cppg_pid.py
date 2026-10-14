@@ -20,12 +20,14 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+from rich.progress import track
 from torch.utils.data import DataLoader, TensorDataset
 
 from omnisafe.algorithms import registry
 from omnisafe.algorithms.on_policy.base.ppo import PPO
 from omnisafe.common.pid_lagrange import PIDLagrangian
 from omnisafe.common.buffer.vector_ppg_buffer import VectorPPGBuffer
+from omnisafe.common.buffer.vector_onpolicy_buffer import VectorOnPolicyBuffer
 
 
 @registry.register
@@ -48,8 +50,25 @@ class CPPGPID(PPO):
         # assert self._cfgs.train_cfgs.epochs % self._cfgs.algo_cfgs.N_pi == 0, \
         #     "Total epochs must be a multiple of N_pi!"
         self._number_phases = self._cfgs.train_cfgs.total_steps // (self._cfgs.algo_cfgs.N_pi * self._cfgs.algo_cfgs.steps_per_epoch)
-        self._buf: VectorPPGBuffer = VectorPPGBuffer(
-            policy_buffer=self._buf,
+        self._buf: VectorPPGBuffer = self._make_phasic_buffer(self._buf)
+        self._lagrange: PIDLagrangian = PIDLagrangian(**self._cfgs.lagrange_cfgs)
+        self._init_aux_policy_clone()
+
+    def _init_aux_policy_clone(self) -> None:
+        """Initialize CPPGPID's auxiliary policy-cloning penalty."""
+        self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
+        init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
+        self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
+        self._beta_optimizer = torch.optim.Adam(
+            [self._log_beta_clone],
+            lr=self._cfgs.algo_cfgs.beta_lr,
+            betas=(0.0, 0.999)  # Disabled momentum for tight locking
+        )
+
+    def _make_phasic_buffer(self, policy_buffer: VectorOnPolicyBuffer) -> VectorPPGBuffer:
+        """Build the auxiliary buffer while retaining the standard PPO buffer."""
+        return VectorPPGBuffer(
+            policy_buffer=policy_buffer,
             obs_space=self._env.observation_space,
             act_space=self._env.action_space,
             rollout_size=self._steps_per_epoch,
@@ -58,15 +77,6 @@ class CPPGPID(PPO):
             standardized_adv_c=self._cfgs.algo_cfgs.standardized_cost_adv,
             num_envs=self._cfgs.train_cfgs.vector_env_nums,
             device=self._device
-        )
-        self._lagrange: PIDLagrangian = PIDLagrangian(**self._cfgs.lagrange_cfgs)
-        self._aux_kl_target = self._cfgs.algo_cfgs.aux_kl_target
-        init_beta_clone = self._cfgs.algo_cfgs.init_beta_clone
-        self._log_beta_clone = nn.Parameter(torch.tensor(np.log(init_beta_clone), dtype=torch.float32, device=self._device))
-        self._beta_optimizer = torch.optim.Adam(
-            [self._log_beta_clone],
-            lr=self._cfgs.algo_cfgs.beta_lr,
-            betas=(0.0, 0.999)  # Disabled momentum for tight locking
         )
 
     def _init_log(self) -> None:
@@ -100,7 +110,6 @@ class CPPGPID(PPO):
         self._logger.log('INFO: Start training')
 
         for phase in range(self._number_phases):
-            print(f"Phase {phase+1} of {self._number_phases+1}")
             self._logger.save_actor_snapshot(
                 phase=phase,
                 stage='policy',
@@ -113,6 +122,10 @@ class CPPGPID(PPO):
             )
 
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
+                self._logger.set_progress_context(
+                    f'phase {phase + 1}/{self._number_phases}, '
+                    f'policy {policy_phase + 1}/{self._cfgs.algo_cfgs.N_pi}',
+                )
 
                 current_epoch = phase * self._cfgs.algo_cfgs.N_pi + policy_phase
                 total_env_steps = (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch
@@ -169,6 +182,9 @@ class CPPGPID(PPO):
             ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
             ep_len = self._logger.get_stats('Metrics/EpLen')[0]
 
+            self._logger.set_progress_context(
+                f'phase {phase + 1}/{self._number_phases}, auxiliary',
+            )
             self._compute_old_policy_snapshot() #populate the aux buffer with pi_old(.|s_t) for all states in it
             self._logger.save_actor_snapshot(
                 phase=phase,
@@ -176,7 +192,10 @@ class CPPGPID(PPO):
                 stage_iteration=0,
                 total_env_steps=total_env_steps,
             )
-            for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
+            for aux_epoch in track(
+                range(self._cfgs.algo_cfgs.E_aux),
+                description=f'Auxiliary updates{self._logger.progress_context}...',
+            ):
                 self._aux_update()
                 self._logger.save_actor_snapshot(
                     phase=phase,
@@ -184,11 +203,16 @@ class CPPGPID(PPO):
                     stage_iteration=aux_epoch + 1,
                     total_env_steps=total_env_steps,
                 )
+            self._after_auxiliary_phase(total_env_steps)
 
+        self._logger.set_progress_context()
         self._logger.close()
         self._env.close()
 
         return ep_ret, ep_cost, ep_len
+
+    def _after_auxiliary_phase(self, total_env_steps: int) -> None:
+        """Hook for algorithms that report auxiliary metrics after the last update."""
 
     def _update(self) -> None:
         """Update actor, critic, as we used in the :class:`PolicyGradient` algorithm.

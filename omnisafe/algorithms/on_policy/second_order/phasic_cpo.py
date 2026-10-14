@@ -20,6 +20,7 @@ import torch
 import torch.nn as nn
 import time
 import numpy as np
+from rich.progress import track
 from torch.utils.data import DataLoader, TensorDataset
 
 from omnisafe.algorithms import registry
@@ -95,7 +96,6 @@ class PhasicCPO(TRPO):
 
         for phase in range(self._number_phases):
 
-            print("start policy phase")
             self._logger.save_actor_snapshot(
                 phase=phase,
                 stage='policy',
@@ -107,6 +107,10 @@ class PhasicCPO(TRPO):
                 ),
             )
             for policy_phase in range(self._cfgs.algo_cfgs.N_pi):
+                self._logger.set_progress_context(
+                    f'phase {phase + 1}/{self._number_phases}, '
+                    f'policy {policy_phase + 1}/{self._cfgs.algo_cfgs.N_pi}',
+                )
 
                 current_epoch = phase * self._cfgs.algo_cfgs.N_pi + policy_phase
                 total_env_steps = (current_epoch + 1) * self._cfgs.algo_cfgs.steps_per_epoch
@@ -163,15 +167,20 @@ class PhasicCPO(TRPO):
             ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
             ep_len = self._logger.get_stats('Metrics/EpLen')[0]
 
+            self._logger.set_progress_context(
+                f'phase {phase + 1}/{self._number_phases}, auxiliary',
+            )
             self._compute_old_policy_snapshot()  # populate the aux buffer with pi_old(.|s_t) for all states in it
-            print("start aux phase")
             self._logger.save_actor_snapshot(
                 phase=phase,
                 stage='auxiliary',
                 stage_iteration=0,
                 total_env_steps=total_env_steps,
             )
-            for aux_epoch in range(self._cfgs.algo_cfgs.E_aux):
+            for aux_epoch in track(
+                range(self._cfgs.algo_cfgs.E_aux),
+                description=f'Auxiliary updates{self._logger.progress_context}...',
+            ):
                 self._aux_update()
                 self._logger.save_actor_snapshot(
                     phase=phase,
@@ -180,6 +189,7 @@ class PhasicCPO(TRPO):
                     total_env_steps=total_env_steps,
                 )
 
+        self._logger.set_progress_context()
         self._logger.close()
         self._env.close()
 

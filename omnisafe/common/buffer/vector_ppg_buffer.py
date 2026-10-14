@@ -21,11 +21,12 @@ class VectorPPGBuffer(VectorOnPolicyBuffer):
         standardized_adv_c: bool,
         num_envs: int,
         device: torch.device = DEVICE_CPU,
+        auxiliary_buffer_cls: type[AuxiliaryBuffer] = AuxiliaryBuffer,
     ) -> None:
         self._policy_buffer = policy_buffer
 
         total_aux_size = rollout_size * N_pi * num_envs
-        self._aux_buffer = AuxiliaryBuffer(
+        self._aux_buffer = auxiliary_buffer_cls(
             obs_space=obs_space,
             act_space=act_space,
             size=total_aux_size,

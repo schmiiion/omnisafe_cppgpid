@@ -207,7 +207,11 @@ class PolicyGradient(BaseAlgo):
         self._logger.register_key('Train/StopIter')
         self._logger.register_key('Train/PolicyRatio', min_and_max=True)
         self._logger.register_key('Train/LR')
-        if self._cfgs.model_cfgs.actor_type == 'gaussian_learning' or self._cfgs.model_cfgs.actor_type == 'gaussian_learning_ppg':
+        if self._cfgs.model_cfgs.actor_type in (
+            'gaussian_learning',
+            'gaussian_learning_ppg',
+            'gaussian_learning_model_ppg',
+        ):
             self._logger.register_key('Train/PolicyStd')
 
         self._logger.register_key('TotalEnvSteps')
@@ -365,7 +369,10 @@ class PolicyGradient(BaseAlgo):
         update_counts = 0
         final_kl = 0.0
 
-        for i in track(range(self._cfgs.algo_cfgs.update_iters), description='Updating...'):
+        for i in track(
+            range(self._cfgs.algo_cfgs.update_iters),
+            description=f'Updating{self._logger.progress_context}...',
+        ):
             for (
                 obs,
                 act,

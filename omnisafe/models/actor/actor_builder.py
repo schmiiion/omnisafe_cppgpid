@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from omnisafe.models.actor.gaussian_learning_actor import GaussianLearningActor
+from omnisafe.models.actor.gaussian_learning_model_ppg_actor import GaussianLearningModelPPGActor
 from omnisafe.models.actor.gaussian_learning_ppg_actor import GaussianLearningPPGActor
 from omnisafe.models.actor.gaussian_sac_actor import GaussianSACActor
 from omnisafe.models.actor.mlp_actor import MLPActor
@@ -85,6 +86,14 @@ class ActorBuilder:
             )
         if actor_type == 'gaussian_learning_ppg':
             return GaussianLearningPPGActor(
+                self._obs_space,
+                self._act_space,
+                self._hidden_sizes,
+                activation=self._activation,
+                weight_initialization_mode=self._weight_initialization_mode,
+            )
+        if actor_type == 'gaussian_learning_model_ppg':
+            return GaussianLearningModelPPGActor(
                 self._obs_space,
                 self._act_space,
                 self._hidden_sizes,

@@ -115,6 +115,7 @@ class Logger:  # pylint: disable=too-many-instance-attributes
             self._csv_writer = csv.writer(self._output_file)
 
         self._epoch: int = 0
+        self._progress_context: str = ''
         self._first_row: bool = True
         self._what_to_save: dict[str, Any] | None = None
         self._data: dict[str, deque[float] | list[float]] = {}
@@ -348,7 +349,31 @@ class Logger:  # pylint: disable=too-many-instance-attributes
             else:
                 raise ValueError(f'Unsupported type {type(val)}')
 
-    def dump_tabular(self) -> None:
+    def write_scalars(
+        self,
+        data: dict[str, float],
+        global_step: int,
+        csv_filename: str | None = None,
+    ) -> None:
+        """Write phase metrics at an environment-step index, optionally to a separate CSV."""
+        if not self._maste_proc:
+            return
+        if csv_filename is not None:
+            path = os.path.join(self._log_dir, csv_filename)
+            new_file = not os.path.exists(path)
+            with open(path, 'a', encoding='utf-8', newline='') as output:
+                writer = csv.writer(output)
+                if new_file:
+                    writer.writerow(['TotalEnvSteps', *data.keys()])
+                writer.writerow([global_step, *data.values()])
+        if self._use_tensorboard:
+            for key, value in data.items():
+                self._tensorboard_writer.add_scalar(key, value, global_step=global_step)
+            self._tensorboard_writer.flush()
+        if self._use_wandb:
+            wandb.log(data, step=global_step)
+
+    def dump_tabular(self, global_step: int | None = None) -> None:
         """Dump the tabular data to the console and the file.
 
         The dumped data will be separated by the following steps:
@@ -357,11 +382,16 @@ class Logger:  # pylint: disable=too-many-instance-attributes
         - Write the data to the csv file.
         - Write the data to the tensorboard.
         - Update the progress logger.
+
+        Args:
+            global_step (int or None, optional): Step for TensorBoard and Weights & Biases.
+                Defaults to the logging epoch.
         """
         self._update_current_row()
         table = Table('Metrics', 'Value')
         if self._maste_proc:
             self._epoch += 1
+            log_step = self._epoch if global_step is None else global_step
             key_lens = list(map(len, self._current_row.keys()))
             max_key_len = max(15, *key_lens)
             for key, val in self._current_row.items():
@@ -378,11 +408,11 @@ class Logger:  # pylint: disable=too-many-instance-attributes
 
             if self._use_tensorboard:
                 for key, val in self._current_row.items():
-                    self._tensorboard_writer.add_scalar(key, val, global_step=self._epoch)
+                    self._tensorboard_writer.add_scalar(key, val, global_step=log_step)
                 self._tensorboard_writer.flush()
 
             if self._use_wandb:
-                wandb.log(self._current_row, step=self._epoch)
+                wandb.log(self._current_row, step=log_step)
             self._console.print(table)
 
     def _update_current_row(self) -> None:
@@ -444,6 +474,15 @@ class Logger:  # pylint: disable=too-many-instance-attributes
     def current_epoch(self) -> int:
         """Return the current epoch."""
         return self._epoch
+
+    @property
+    def progress_context(self) -> str:
+        """Return optional context for console progress descriptions."""
+        return self._progress_context
+
+    def set_progress_context(self, context: str | None = None) -> None:
+        """Set a phase label without changing metric or TensorBoard logging."""
+        self._progress_context = f' ({context})' if context else ''
 
     @property
     def log_dir(self) -> str:

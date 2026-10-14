@@ -225,18 +225,19 @@ class MRQPID(DDPG):
             use_wandb=cfg.logger_cfgs.use_wandb,
             config=cfg,
         )
-        saved = {
-            'pi': self._actor_critic,
-            'target_encoder': self._target_encoder,
-            'target_policy': self._target_policy,
-            'target_reward_critic': self._target_reward_critic,
-            'target_cost_critic': self._target_cost_critic,
-            'lagrangian_multiplier': self._lagrange.lagrangian_multiplier,
-        }
-        if cfg.algo_cfgs.obs_normalize:
-            saved['obs_normalizer'] = self._env.save()['obs_normalizer']
-        self._logger.setup_torch_saver(saved)
-        self._logger.torch_save()
+        if cfg.logger_cfgs.save_model_freq > 0:
+            saved = {
+                'pi': self._actor_critic,
+                'target_encoder': self._target_encoder,
+                'target_policy': self._target_policy,
+                'target_reward_critic': self._target_reward_critic,
+                'target_cost_critic': self._target_cost_critic,
+                'lagrangian_multiplier': self._lagrange.lagrangian_multiplier,
+            }
+            if cfg.algo_cfgs.obs_normalize:
+                saved['obs_normalizer'] = self._env.save()['obs_normalizer']
+            self._logger.setup_torch_saver(saved)
+            self._logger.torch_save()
         for key in ('Metrics/EpRet', 'Metrics/EpCost', 'Metrics/EpLen'):
             self._logger.register_key(key, window_length=cfg.logger_cfgs.window_lens)
         if cfg.train_cfgs.eval_episodes > 0:
@@ -324,8 +325,9 @@ class MRQPID(DDPG):
                 'Time/Epoch': elapsed,
                 'Time/FPS': self._cfgs.algo_cfgs.steps_per_epoch / elapsed,
             })
-            self._logger.dump_tabular()
-            if (epoch + 1) % self._cfgs.logger_cfgs.save_model_freq == 0:
+            self._logger.dump_tabular(global_step=self._environment_steps)
+            save_frequency = self._cfgs.logger_cfgs.save_model_freq
+            if save_frequency > 0 and (epoch + 1) % save_frequency == 0:
                 self._logger._what_to_save['lagrangian_multiplier'] = (
                     self._lagrange.lagrangian_multiplier
                 )
