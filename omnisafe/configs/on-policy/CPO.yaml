@@ -81,7 +81,7 @@ defaults:
     # Subsampled observation
     fvp_obs: None
     # Tolerance of constraint violation
-    cost_limit: 25
+    cost_limit: 0.5
     # The sub-sampling rate of the observation
     fvp_sample_freq: 1
   # logger configurations

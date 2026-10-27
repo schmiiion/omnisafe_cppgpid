@@ -1,0 +1,63 @@
+# Task selection and outer-loop settings live here. The OmniSafe YAML retains
+# the seed, device, logging and inner-algorithm hyperparameters.
+
+icrl:
+  env_id: SafetyPointCircle1-v0
+  # Set point_xy only with expert data exported from the dedicated XY expert run.
+  # It appends world (x, y) to both the inner policy's and constraint model's input.
+  observation_mode: standard
+  iterations: 75
+  # Training transitions per outer iteration, summed across vector environments.
+  # Use a positive multiple of OmniSafe algo_cfgs.steps_per_epoch (default: 20000).
+  # Extra constraint-fitting rollouts below are not included in this budget.
+  inner_steps: 100000
+  # Fresh complete episodes from the updated policy for each constraint fit.
+  sample_rollouts: 50
+  # Relative paths are resolved against the working directory.
+  expert_dataset: ICRL/expert/expert_trajectories/CPPOPID-SafetyPointCircle1-v0__seed-001-2026-10-22-07-46-05__epoch-500/epoch-500-50-episodes.npz
+  # Shared root for native OmniSafe logs and ICRL artifacts. Each run has one
+  # experiment/seed folder; outer-loop files live in its icrl/ subfolder.
+  runs_dir: ICRL/runs
+
+constraint:
+  # Bayesian variational feasibility model (Liu's Beta constraint network).
+  model: standard #options: variational, standard
+  di_prior: [1, 1]
+  mode: mean
+  confidence: 0.5
+  # Inputs use raw observations and native actions, before policy normalization.
+  input_type: state_action
+  hidden_sizes: [64]
+  # ReLU hidden layers; variational outputs are positive Beta parameters.
+  learning_rate: 0.005
+  # Passes through fitting data; null batch_size means one full-batch update/pass.
+  backward_iters: 10
+  batch_size: 512
+  # Standard: feasibility penalty; variational: Dirichlet-prior KL weight.
+  regularizer_coeff: 0.5
+  no_importance_sampling: true
+  per_step_importance_sampling: true
+  target_kl_old_new: 10
+  target_kl_new_old: 2.5
+  cn_eps: 0.00001
+  anneal_clr_by_factor: 0.9
+
+visualize_cost:
+  enabled: false
+  # Draw this many complete expert and learner episodes (each separately).
+  trajectories_per_source: 3
+  # 1 scores every recorded (state, action); larger values subsample in time.
+  step_stride: 1
+
+# Optional videos of the live policy after each inner phase, before cost fitting.
+# Seeds are held-out environment instances and are reused at every iteration.
+visualize_rollouts:
+  enabled: false
+  seeds: [10001, 10002]
+  view: map  # map, fixedfar (external MuJoCo camera), or both
+  frame_stride: 4
+  fps: 20
+  size: 512
+
+oracle:
+  enabled: false

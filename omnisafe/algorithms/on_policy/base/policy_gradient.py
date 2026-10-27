@@ -239,7 +239,7 @@ class PolicyGradient(BaseAlgo):
         for env_spec_key in self._env.env_spec_keys:
             self.logger.register_key(env_spec_key)
 
-    def learn(self) -> tuple[float, float, float]:
+    def learn(self, epochs: int | None = None, *, close: bool = True) -> tuple[float, float, float]:
         """This is main function for algorithm update.
 
         It is divided into the following steps:
@@ -248,15 +248,29 @@ class PolicyGradient(BaseAlgo):
         - :meth:`update`: perform actor/critic updates.
         - :meth:`log`: epoch/update information for visualization and terminal log print.
 
+        Args:
+            epochs: Additional epochs to run, or all remaining configured epochs.
+            close: Close resources on return. Use False for staged training, then
+                close the environment and logger when the complete run finishes.
+                Policy, critics, optimizers and schedules persist between calls.
+
         Returns:
             ep_ret: Average episode return in final epoch.
             ep_cost: Average episode cost in final epoch.
             ep_len: Average episode length in final epoch.
         """
-        start_time = time.time()
+        if epochs is not None and epochs <= 0:
+            raise ValueError('epochs must be positive.')
+        first_epoch = getattr(self, '_learning_epoch', 0)
+        last_epoch = self._cfgs.train_cfgs.epochs
+        if epochs is not None:
+            last_epoch = min(first_epoch + epochs, last_epoch)
+        if not hasattr(self, '_learning_start_time'):
+            self._learning_start_time = time.time()
+        start_time = self._learning_start_time
         self._logger.log('INFO: Start training')
 
-        for epoch in range(self._cfgs.train_cfgs.epochs):
+        for epoch in range(first_epoch, last_epoch):
             epoch_time = time.time()
 
             rollout_time = time.time()
@@ -300,12 +314,14 @@ class PolicyGradient(BaseAlgo):
                 epoch + 1
             ) == self._cfgs.train_cfgs.epochs:
                 self._logger.torch_save()
+            self._learning_epoch = epoch + 1
 
         ep_ret = self._logger.get_stats('Metrics/EpRet')[0]
         ep_cost = self._logger.get_stats('Metrics/EpCost')[0]
         ep_len = self._logger.get_stats('Metrics/EpLen')[0]
-        self._logger.close()
-        self._env.close()
+        if close:
+            self._logger.close()
+            self._env.close()
 
         return ep_ret, ep_cost, ep_len
 

@@ -16,6 +16,7 @@
 
 from omnisafe.algorithms.model_based.base.loop import LOOP
 from omnisafe.algorithms.model_based.base.pets import PETS
+from omnisafe.algorithms.model_based.base.bsrp_lag import BSRPLag
 
 
-__all__ = ['LOOP', 'PETS']
+__all__ = ['LOOP', 'PETS', 'BSRPLag']

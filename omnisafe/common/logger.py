@@ -354,8 +354,9 @@ class Logger:  # pylint: disable=too-many-instance-attributes
         data: dict[str, float],
         global_step: int,
         csv_filename: str | None = None,
+        tensorboard_step: int | None = None,
     ) -> None:
-        """Write phase metrics at an environment-step index, optionally to a separate CSV."""
+        """Write phase metrics, optionally using a different TensorBoard x-axis."""
         if not self._maste_proc:
             return
         if csv_filename is not None:
@@ -368,7 +369,10 @@ class Logger:  # pylint: disable=too-many-instance-attributes
                 writer.writerow([global_step, *data.values()])
         if self._use_tensorboard:
             for key, value in data.items():
-                self._tensorboard_writer.add_scalar(key, value, global_step=global_step)
+                self._tensorboard_writer.add_scalar(
+                    key, value,
+                    global_step=global_step if tensorboard_step is None else tensorboard_step,
+                )
             self._tensorboard_writer.flush()
         if self._use_wandb:
             wandb.log(data, step=global_step)

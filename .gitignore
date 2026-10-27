@@ -1,5 +1,7 @@
 ##### Project Specification #####
 **/runs
+/wandb/
+ICRL/cost_snapshot_archive/
 **/exp-x
 
 ##### Python.gitignore #####

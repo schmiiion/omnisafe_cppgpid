@@ -1,0 +1,14 @@
+# Historical settings: SafeLOOP is no longer supported by the ICRL solver.
+# Select an OmniSafe on-policy algorithm YAML for new ICRL runs.
+extends: omnisafe/configs/model-based/SafeLOOP.yaml
+defaults:
+  train_cfgs:
+    torch_threads: 1
+  algo_cfgs:
+    action_repeat: 1
+    obs_normalize: false
+    reward_normalize: false
+    cost_normalize: false
+    use_cost: false
+  evaluation_cfgs:
+    use_eval: false
